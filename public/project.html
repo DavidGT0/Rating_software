@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>project</title>
+    <link rel="stylesheet" href="./project.css">
+</head>
+<body>
+<a href="index.html">⬅ חזרה</a>
+<div id="project"></div>
+
+<script>
+    function getParam(name) {
+        return new URLSearchParams(window.location.search).get(name);
+    }
+
+    const id = parseInt(getParam("id"));
+
+    async function loadProject() {
+        try {
+            let response = await fetch(`/p/${id}`);
+            if (!response.ok) {
+                document.getElementById("project").innerHTML = "<p>הפרויקט לא נמצא</p>";
+                return;
+            }
+            let project = await response.json();
+            renderProject(project);
+        } catch (err) {
+            document.getElementById("project").innerHTML = "<p>שגיאה בטעינת הפרויקט</p>";
+        }
+    }
+
+    function renderProject(project) {
+
+        document.getElementById("project").innerHTML = `
+        <div class="project-page">
+          <h1>${project.name}</h1>
+          <img src="/images/${project.myFileName}?t=${Date.now()}" alt="${project.name}">
+          <p>${project.description}</p>
+          <p><strong>קולות:</strong> <span id="vote-count">${project.votes}</span></p>
+          <button id="vote-btn" onclick="vote(${project.id})">👍 vote</button>
+          <button style="background-color: #e74c3c; margin-top: 10px;" onclick="deleteProjectAndRedirect(${project.id})">🗑️ מחק פרויקט</button>
+          <p id="vote-message" style="color: green; margin-top: 10px;"></p>
+        </div>
+    `;
+    }
+
+    async function deleteProjectAndRedirect(id) {
+        if (confirm("האם למחוק את הפרויקט לצמיתות?")) {
+            try {
+                const response = await fetch(`/p/${id}`, { method: "DELETE" });
+                const data = await response.json();
+                alert(data.message);
+                window.location.href = "index.html";
+            } catch (err) {
+                alert("שגיאה במחיקה: " + err);
+            }
+        }
+    }
+
+    async function vote(id) {
+        try {
+            const response = await fetch(`/p/${id}/vote`, {
+            method: "POST",
+                headers: { "Content-Type": "application/json" }
+        });
+        const data = await response.json();
+
+        alert(data.message);
+
+        const btn = document.getElementById("vote-btn");
+        if (btn) btn.disabled = (data.message.includes("כבר הצבעת"));
+
+        if (data.votes !== undefined) {
+            document.getElementById("vote-count").textContent = data.votes;
+        }
+    } catch (err) {
+        console.error(err);
+        alert("שגיאה בהצבעה");
+    }
+    }
+    
+    loadProject();
+</script>
+</body>
+</html>
